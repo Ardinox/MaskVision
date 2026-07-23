@@ -56,7 +56,6 @@ temp/
 *.avi
 *.mov
 *.mkv
-Note.md
 
 # Uncomment if you want to keep the folders
 #!uploads/.gitkeep
