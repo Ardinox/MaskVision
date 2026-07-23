@@ -1,5 +1,5 @@
 import cv2
-from redacted import redact_image
+from backend.app.services.redacted import redact_frame
 cap = cv2.VideoCapture('backend/app/uploads/demo2.mp4')
 
 fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -17,7 +17,7 @@ while cap.isOpened():
         break
     frame_count += 1
 
-    masked_frame = redact_image(frame)
+    masked_frame = redact_frame(frame)
 
     out.write(masked_frame)
     print(f"Processed frame {frame_count}...")
