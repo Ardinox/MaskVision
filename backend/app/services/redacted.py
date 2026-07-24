@@ -2,7 +2,12 @@ import easyocr
 import numpy as np
 import cv2
 from backend.app.services.pattern import detect_id_type
+from backend.app.services.preprocessing import preprocess_for_ocr, OCR_SCALE
+from backend.app.services.ocr_utils import normalize_ocr_text
 from pyzbar.pyzbar import decode
+
+# Confidence Threshold
+OCR_CONFIDENCE_THRESHOLD = 0.45
 
 reader = easyocr.Reader(["en"])
 
@@ -42,16 +47,32 @@ def mask_qr(frame):
 
     return frame
 
+
 # This function masks sensitive text from each of the frames
 def mask_sensitive_text(frame):
-    result = reader.readtext(frame)
+    processed_frame = preprocess_for_ocr(frame)
+    result = reader.readtext(processed_frame)
 
     for bbox, text, confidence in result:
-        id_type, mask_type = detect_id_type(text) # This function is defined in pattern.py to detect sensitive text using REGEX
+
+        # Remove false positives based on confidence
+        if confidence < OCR_CONFIDENCE_THRESHOLD:
+            continue
+
+        normalized_text = normalize_ocr_text(text)
+        id_type, mask_type = detect_id_type(
+            normalized_text
+        )  # This function is defined in pattern.py to detect sensitive text using REGEX
 
         if id_type:
-            clean_text = text.strip()
-            pts = np.array(bbox, dtype=np.int32)
+            clean_text = normalized_text
+
+            pts = np.array(bbox, dtype=np.float32)
+
+            # Convert coordinates back to original image size
+            pts /= OCR_SCALE
+            pts = pts.astype(np.int32)
+
             x_min = int(min(pts[:, 0]))
             x_max = int(max(pts[:, 0]))
             y_min = int(min(pts[:, 1]))
@@ -68,16 +89,19 @@ def mask_sensitive_text(frame):
 
             roi = frame[y_min:y_max, x_min:x_mask_end]
 
-            if roi.shape[0] > 0 and roi.shape[1] > 0:
-                k_w = min(roi.shape[1] // 2 * 2 + 1, 23)
-                k_h = min(roi.shape[0] // 2 * 2 + 1, 23)
-                k_w = max(k_w, 3)
-                k_h = max(k_h, 3)
+            if roi.size == 0:
+                continue
 
-                blurred_roi = cv2.GaussianBlur(roi, (k_w, k_h), 30)
-                frame[y_min:y_max, x_min:x_mask_end] = blurred_roi
+            k_w = min(roi.shape[1] // 2 * 2 + 1, 41)
+            k_h = min(roi.shape[0] // 2 * 2 + 1, 41)
+            k_w = max(k_w, 3)
+            k_h = max(k_h, 3)
+
+            blurred_roi = cv2.GaussianBlur(roi, (k_w, k_h), 50)
+            frame[y_min:y_max, x_min:x_mask_end] = blurred_roi
 
     return frame
+
 
 # If this function is called for a 'frame' it will first mask sensitive text and then mask qr and return that frame back
 def redact_frame(frame):
@@ -87,11 +111,15 @@ def redact_frame(frame):
 
 
 # This part is only for temporary testings
-image = cv2.imread("backend/app/uploads/qr_id.jpg")
-if image is None:
-    raise FileNotFoundError(f"Could not load image")
+if __name__ == "__main__":
+    image = cv2.imread("backend/app/uploads/qr_id.jpg")
 
-processed = redact_frame(image)
-output_path = "backend/app/processed/masked_image3.jpg"
-cv2.imwrite(output_path, processed)
-print(f"Saved output to {output_path}")
+    if image is None:
+        raise FileNotFoundError("Could not load image")
+
+    processed = redact_frame(image)
+
+    output_path = "backend/app/processed/masked_image3.jpg"
+    cv2.imwrite(output_path, processed)
+
+    print(f"Saved output to {output_path}")

@@ -50,7 +50,7 @@ The application focuses on:
 
 🚧 This project is currently under active development.
 
-More features, documentation, and deployment instructions will be added as development progresses.
+More features, documentation, and deployment instructions will be added as development progresses. [Read More](Note.md)
 
 ## License
 

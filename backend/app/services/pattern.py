@@ -21,6 +21,8 @@ ID_PATTERNS = {
         "mask_type": "FULL",
     },
 }
+
+# Detect Id type and mask type for futher processing
 def detect_id_type(text: str):
     clean_text = text.strip()
     for id_type, config in ID_PATTERNS.items():

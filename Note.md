@@ -269,3 +269,77 @@ All four cases were processed successfully.
 ### Key Lesson Learned
 
 A modular pipeline is easier to maintain and extend than multiple standalone scripts. Future improvements like preprocessing, frame skipping, and object tracking can now be added without changing the overall architecture.
+
+# Progress Report(24 July 2026)
+
+## Completed
+
+- Added an OCR preprocessing pipeline (`preprocessing.py`).
+- Upscaled images before OCR for better text recognition.
+- Applied CLAHE for local contrast enhancement.
+- Added image sharpening to improve OCR readability.
+- Fixed bounding box scaling after preprocessing by mapping OCR coordinates back to the original image.
+- Added OCR confidence threshold to ignore low-confidence detections.
+- Improved Gaussian blur using larger dynamic kernel sizes for stronger masking.
+- Refactored OCR text normalization into a separate utility (`ocr_utils.py`).
+- Wrapped temporary testing code inside `if __name__ == "__main__":`.
+
+---
+
+## Problems Encountered
+
+### 1. Incorrect Mask Position
+
+**Problem:**
+After introducing image upscaling, the blur was applied at incorrect locations.
+
+**Cause:**
+EasyOCR returned bounding boxes for the upscaled image while masking was performed on the original frame.
+
+**Solution:**
+Scaled all OCR coordinates back using `OCR_SCALE` before applying the mask.
+
+---
+
+### 2. Aadhaar VID Not Detected
+
+**Problem:**
+The VID was visible in the image but was not being detected.
+
+**Cause:**
+EasyOCR returned:
+
+```text
+VID : 9876 5432 1234 5678
+```
+
+while the regex expected only the numeric ID.
+
+**Solution:**
+Added an OCR text normalization step to remove prefixes such as `VID:` before regex matching.
+
+---
+
+### 3. Weak Blur on Sensitive Text
+
+**Problem:**
+Sensitive numbers were still partially readable after masking.
+
+**Solution:**
+Increased the maximum Gaussian kernel size and blur strength to produce stronger, more privacy-preserving masking.
+
+---
+
+## Observations
+
+- OCR accuracy improved for most Aadhaar numbers after preprocessing.
+- QR detection continued to work correctly after pipeline changes.
+- The remaining OCR limitations are primarily due to OCR segmentation rather than image quality.
+
+---
+
+## Next Steps
+
+- Implement frame skipping.
+- Add bounding box persistence between frames.
+- Benchmark processing time before and after optimization.
