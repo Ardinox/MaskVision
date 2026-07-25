@@ -5,9 +5,14 @@ from backend.app.services.redacted import (
     detect_qr,
     apply_masks,
 )
+from backend.app.services.tracker import (
+    create_trackers,
+    update_trackers,
+)
 
 # Run OCR every 5 frames
-OCR_INTERVAL = 5
+OCR_INTERVAL = 15
+
 
 # Process a single image
 def process_Image():
@@ -26,7 +31,7 @@ def process_Image():
 
 # Process a video frame by frame
 def process_video():
-    cap = cv2.VideoCapture("backend/app/uploads/qr_id.mp4")
+    cap = cv2.VideoCapture("backend/app/uploads/demo.mp4")
 
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -44,6 +49,9 @@ def process_video():
 
     # Stores the latest detected text and QR bounding boxes
     previous_detections = []
+
+    # tracker List
+    trackers = []
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -64,11 +72,20 @@ def process_video():
             if new_detections:
                 previous_detections = new_detections
 
-        # Blur using the most recent detections
+                trackers = create_trackers(frame, previous_detections)
+
+        # On skipped frames, let trackers estimate new positions
+        if frame_count != 1 and frame_count % OCR_INTERVAL != 0:
+            tracked_detections = update_trackers(frame, trackers)
+
+            if tracked_detections:
+                previous_detections = tracked_detections
+
+        # Blur using the latest detections
         apply_masks(frame, previous_detections)
 
         out.write(frame)
-        print(f"Processed frame {frame_count}...")
+        print(f"Processed frame {frame_count}...")  # Kept For Testing Purpose
 
     cap.release()
     out.release()

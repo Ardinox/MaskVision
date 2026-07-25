@@ -47,7 +47,6 @@ def detect_sensitive_text(frame):
             continue
 
         normalized_text = normalize_ocr_text(text)
-        print(normalized_text)
         id_type, mask_type = detect_id_type(
             normalized_text
         )  # This function is defined in pattern.py to detect sensitive text using REGEX
