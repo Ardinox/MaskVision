@@ -343,3 +343,15 @@ Increased the maximum Gaussian kernel size and blur strength to produce stronger
 - Implement frame skipping.
 - Add bounding box persistence between frames.
 - Benchmark processing time before and after optimization.
+
+
+# Progress Update (25 July 2026)
+
+## Performance Optimisation
+
+- Refactored the pipeline by separating detection from masking.
+- Added OCR preprocessing and confidence filtering.
+- Implemented frame skipping with detection caching.
+- Reduced video processing time significantly while maintaining masking quality.
+- Improved Gaussian blur strength and dynamic kernel sizing.
+- Remaining issue: VID detection is inconsistent in videos and will require further investigation (likely regex or OCR segmentation related).

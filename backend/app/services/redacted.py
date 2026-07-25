@@ -11,12 +11,14 @@ OCR_CONFIDENCE_THRESHOLD = 0.45
 
 reader = easyocr.Reader(["en"])
 
-# This function masks QR codes from each of the frames
-def mask_qr(frame):
+
+# Detect QR codes in a frame and return their bounding boxes.
+def detect_qr(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     qr_codes = decode(gray)
 
     img_h, img_w = frame.shape[:2]
+    detections = []
 
     for qr in qr_codes:
         rect = qr.rect
@@ -28,30 +30,15 @@ def mask_qr(frame):
         x_max = min(img_w, x + w + pad)
         y_max = min(img_h, y + h + pad)
 
-        roi = frame[y_min:y_max, x_min:x_max]
+        detections.append({"bbox": (x_min, y_min, x_max, y_max), "type": "QR"})
+    return detections
 
-        if roi.size == 0:
-            continue
-
-        roi_h, roi_w = roi.shape[:2]
-
-        # Base kernel on the smaller ROI dimension
-        k_size = max(3, int(min(roi_h, roi_w) * 0.2))
-
-        # Kernel size must be odd
-        if k_size % 2 == 0:
-            k_size += 1
-
-        blurred_roi = cv2.GaussianBlur(roi, (k_size, k_size), 30)
-        frame[y_min:y_max, x_min:x_max] = blurred_roi
-
-    return frame
-
-
-# This function masks sensitive text from each of the frames
-def mask_sensitive_text(frame):
+# Detects sensitive text from given the frames and return their bounding boxes
+def detect_sensitive_text(frame):
     processed_frame = preprocess_for_ocr(frame)
     result = reader.readtext(processed_frame)
+
+    detections = []
 
     for bbox, text, confidence in result:
 
@@ -60,12 +47,12 @@ def mask_sensitive_text(frame):
             continue
 
         normalized_text = normalize_ocr_text(text)
+        print(normalized_text)
         id_type, mask_type = detect_id_type(
             normalized_text
         )  # This function is defined in pattern.py to detect sensitive text using REGEX
 
         if id_type:
-            clean_text = normalized_text
 
             pts = np.array(bbox, dtype=np.float32)
 
@@ -81,45 +68,58 @@ def mask_sensitive_text(frame):
             total_width = x_max - x_min
             x_mask_end = x_max
 
+            # Calculating the width for first 8 Characters of Aadhar Number
             if mask_type == "FIRST_8":
-                total_chars = len(clean_text)
-                masked_chars_counts = 10 if " " in clean_text else 8
+                total_chars = len(normalized_text)
+                masked_chars_counts = 10 if " " in normalized_text else 8
                 mask_ratio = masked_chars_counts / total_chars
                 x_mask_end = x_min + int(total_width * mask_ratio)
 
-            roi = frame[y_min:y_max, x_min:x_mask_end]
-
-            if roi.size == 0:
-                continue
-
-            k_w = min(roi.shape[1] // 2 * 2 + 1, 41)
-            k_h = min(roi.shape[0] // 2 * 2 + 1, 41)
-            k_w = max(k_w, 3)
-            k_h = max(k_h, 3)
-
-            blurred_roi = cv2.GaussianBlur(roi, (k_w, k_h), 50)
-            frame[y_min:y_max, x_min:x_mask_end] = blurred_roi
-
-    return frame
+            detections.append(
+                {
+                    "bbox": (x_min, y_min, x_mask_end, y_max),
+                    "type": id_type,
+                    "mask_type": mask_type,
+                }
+            )
+    return detections
 
 
-# If this function is called for a 'frame' it will first mask sensitive text and then mask qr and return that frame back
+def apply_masks(frame, detections):
+    """
+    Apply Gaussian blur to every detected sensitive region.
+
+    Parameters:
+        frame: Original image/frame.
+        detections: List of detection dictionaries.
+    """
+
+    for detection in detections:
+
+        x_min, y_min, x_max, y_max = detection["bbox"]
+
+        roi = frame[y_min:y_max, x_min:x_max]
+
+        if roi.size == 0:
+            continue
+
+        k_w = min(roi.shape[1] // 2 * 2 + 1, 41)
+        k_h = min(roi.shape[0] // 2 * 2 + 1, 41)
+
+        k_w = max(k_w, 3)
+        k_h = max(k_h, 3)
+
+        blurred_roi = cv2.GaussianBlur(roi, (k_w, k_h), 50)
+
+        frame[y_min:y_max, x_min:x_max] = blurred_roi
+
+# If called for a 'frame' it will apply masking and then return that frame back
 def redact_frame(frame):
-    frame = mask_sensitive_text(frame)
-    frame = mask_qr(frame)
+    text_detections = detect_sensitive_text(frame)
+    qr_detections = detect_qr(frame)
+
+    detections = text_detections + qr_detections
+
+    apply_masks(frame, detections)
     return frame
 
-
-# This part is only for temporary testings
-if __name__ == "__main__":
-    image = cv2.imread("backend/app/uploads/qr_id.jpg")
-
-    if image is None:
-        raise FileNotFoundError("Could not load image")
-
-    processed = redact_frame(image)
-
-    output_path = "backend/app/processed/masked_image3.jpg"
-    cv2.imwrite(output_path, processed)
-
-    print(f"Saved output to {output_path}")
