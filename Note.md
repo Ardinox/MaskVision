@@ -345,13 +345,80 @@ Increased the maximum Gaussian kernel size and blur strength to produce stronger
 - Benchmark processing time before and after optimization.
 
 
-# Progress Update (25 July 2026)
+# Progress Update (26 July 2026)
 
-## Performance Optimisation
+## Object Tracking Integration (CSRT)
 
-- Refactored the pipeline by separating detection from masking.
-- Added OCR preprocessing and confidence filtering.
-- Implemented frame skipping with detection caching.
-- Reduced video processing time significantly while maintaining masking quality.
-- Improved Gaussian blur strength and dynamic kernel sizing.
-- Remaining issue: VID detection is inconsistent in videos and will require further investigation (likely regex or OCR segmentation related).
+### Pipeline Refactoring
+
+- Refactored the video pipeline to separate **detection**, **tracking**, and **masking** into independent stages.
+- Created a dedicated tracking module to keep tracker management separate from OCR and masking logic.
+- Detection now acts as a source of bounding boxes, while masking simply consumes those bounding boxes regardless of whether they come from OCR or the tracker.
+
+---
+
+## CSRT Object Tracking
+
+- Integrated **OpenCV CSRT trackers** for both sensitive text regions and QR codes.
+- Created one tracker for each detected object instead of tracking the entire frame.
+- Trackers are refreshed every OCR cycle using the latest detections.
+- During skipped frames, bounding boxes are updated using the trackers instead of rerunning OCR.
+
+Pipeline:
+
+```
+OCR Detection
+      ↓
+Create CSRT Trackers
+      ↓
+Update Trackers on Skipped Frames
+      ↓
+Apply Gaussian Blur
+```
+
+---
+
+## Performance Improvements
+
+- Combined **frame skipping** with **CSRT tracking**.
+- OCR is now executed only at fixed intervals while trackers estimate object movement between OCR runs.
+- Significantly reduced expensive OCR inference calls while keeping masks aligned with moving ID cards.
+- Improved masking stability compared to using cached bounding boxes alone.
+
+---
+
+## Code Quality Improvements
+
+- Added a dedicated `tracker.py` module.
+- Modularised tracker creation and tracker updates.
+- Existing masking logic required no changes because trackers return detections in the same format as the OCR pipeline.
+- Improved overall project architecture by separating responsibilities:
+  - Detection
+  - Tracking
+  - Masking
+
+---
+
+## Current Results
+
+- Aadhaar number masking performs consistently.
+- QR code masking remains reliable.
+- CSRT tracking successfully follows moving sensitive regions between OCR refreshes.
+- Video processing speed has improved substantially while maintaining masking quality.
+
+---
+
+## Known Limitation
+
+- Aadhaar **VID** detection is still inconsistent in some videos.
+- Investigation shows this is primarily due to OCR recognition errors on low-quality or motion-blurred frames rather than the tracking system.
+- This limitation will be documented and can be addressed in future versions using improved OCR models or document-specific detectors.
+
+---
+
+## Next Steps
+
+- Build the FastAPI backend for image and video upload endpoints.
+- Integrate the masking pipeline into REST APIs.
+- Develop the Next.js frontend for file upload, preview, processing status, and download.
+- Dockerise the backend and prepare the project for deployment.
