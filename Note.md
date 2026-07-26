@@ -1,20 +1,22 @@
 # PII Masking Project – OCR Detection Issues & Optimization Notes
 
-## Problem 1: Virtual ID (VID) was not detected
+# Known Limitations
 
-### What I observed
+## Aadhaar VID Detection
 
-* Aadhaar Virtual IDs (16 digits) were sometimes not detected even though they were clearly visible in the video.
-* Detection worked for some IDs but failed for others.
+### Issue
 
-### Why it happened
+VID detection is still inconsistent in videos.
 
-EasyOCR does not always return an entire line of text as one string. For a 16-digit VID, it may split the text into multiple OCR outputs because of:
+### Root Cause
 
-* Camera glare
-* Motion blur
-* Text alignment
-* OCR segmentation
+This is primarily an OCR limitation rather than a regex issue.
+
+EasyOCR sometimes:
+
+- misses the VID completely
+- segments the text incorrectly
+- produces low-confidence predictions on motion-blurred frames
 
 Example:
 
@@ -33,405 +35,224 @@ EasyOCR returned:
 
 Since my regex expected all 16 digits in a single string, it failed to match the VID.
 
-### Solutions explored
 
-* Made the regex more flexible by allowing optional spaces and dashes between groups of digits.
+### Possible Future Improvements
 
-```python
-"AADHAAR_VID": {
-    "pattern": r"\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b",
-    "mask_type": "FULL",
-}
-```
-
-* Use `re.search()` instead of `re.match()`.
-
-  * `re.match()` only checks from the beginning of the string.
-  * `re.search()` scans the entire OCR output, making detection more reliable.
+- PaddleOCR
+- Fine-tuned OCR
+- YOLO-based document detection
+- Better preprocessing
+- OCR ensemble
 
 ---
 
-# Problem 2: IDs were missed in some video frames
+# Performance Optimisations
 
-### What I observed
+## Initial Problem
 
-The same Aadhaar/PAN card was detected in one frame but not in the next few frames.
+OCR was executed on every frame.
 
-### Why it happened
-
-The main reason is motion blur.
-
-When the card moves:
-
-* Character edges become blurred.
-* OCR models cannot recognize the text accurately.
-* As a result, detection temporarily fails for a few consecutive frames.
-
----
-
-# Problem 3: Processing was extremely slow
-
-### What I observed
-
-A 1-second video took nearly 2 minutes to process.
-
-### Why it happened
-
-My current pipeline performs OCR on **every single frame**.
-
-Example:
-
-* 1-second video
-* 30 FPS
-* Total frames = 30
-
-EasyOCR is a deep learning model (PyTorch-based).
-
-Approximate CPU inference time:
-
-* 3–5 seconds per frame
-
-So,
+Result:
 
 ```
-30 frames × ~4 seconds/frame ≈ 120 seconds
+30 FPS video
+ ↓
+30 OCR calls for every second 
+ ↓
+Very Slow Processing
 ```
 
-This explains why processing a very short video took around two minutes.
+---
+
+### Solution 1 — Frame Skipping
+
+Run OCR every 5 frames.
+
+Skipped frames reuse previous detections.
+
+Benefit:
+
+- Huge speed improvement
+- Minimal quality loss
 
 ---
 
-# How production systems solve this
-
-Banks and KYC systems do **not** run OCR on every frame. Instead, they combine OCR with lightweight tracking techniques.
-
-## 1. Object Tracking (Best Optimization)
-
-### Idea
-
-Run OCR only occasionally.
-
-Example workflow:
-
-* Frame 1
-
-  * Run EasyOCR.
-  * Detect the text and its bounding box.
-
-* Frames 2–29
-
-  * Do **not** run OCR.
-  * Use an OpenCV tracker (e.g., KCF) or trackers like SORT/ByteTrack to follow the detected bounding box.
-
-* Frame 30
-
-  * Run OCR again to refresh the detection.
-
-### Benefit
-
-Reduces expensive OCR calls by around **90%**, leading to a major speed improvement.
-
----
-
-## 2. Frame Skipping
-
-Instead of processing every frame:
-
-* Process every 5th (or 6th) frame.
-* Reuse the last detected bounding box for the skipped frames.
-
-This works well when the card is moving smoothly.
-
----
-
-## 3. Resize Frames Before OCR
-
-Running OCR on a full HD frame is much slower than on a smaller image.
-
-Workflow:
-
-1. Resize the frame (e.g., 1920×1080 → 640×360).
-2. Run EasyOCR on the smaller frame.
-3. Obtain the bounding box coordinates.
-4. Scale the coordinates back to the original resolution.
-5. Apply the blur on the original high-resolution frame.
-
-This significantly reduces OCR inference time.
-
----
-
-## 4. GPU Acceleration
-
-EasyOCR performs much faster on a CUDA-enabled GPU.
-
-Approximate comparison:
-
-* CPU: ~4 seconds/frame
-* Modern GPU: ~0.05 seconds/frame
-
-Production systems typically use CUDA with TensorRT or ONNX Runtime for maximum speed.
-
----
-
-# Planned Improvements for My Project
-
-To make the project more production-like:
-
-1. **Frame Skipping**
-
-   * Process only every 5th frame instead of every frame.
-
-2. **Bounding Box Persistence**
-
-   * If frame 5 detects an ID, reuse the same bounding box for frames 6–9.
-   * Refresh the detection on frame 10.
-
-3. **Later Enhancements**
-
-   * Add object tracking (KCF, SORT, or ByteTrack).
-   * Resize frames before OCR.
-   * Use GPU acceleration whenever available.
-
----
-
-# Expected Outcome
-
-With just **frame skipping** and **bounding box persistence**, the estimated processing time can drop from approximately:
-
-```
-120 seconds
-        ↓
-~15 seconds (CPU)
-```
-
-while maintaining almost the same detection quality.
-
----
-
-# Key Lesson Learned
-
-The biggest bottleneck is **running OCR on every frame**. Production-grade video masking systems treat OCR as an expensive operation and minimize its usage by combining it with tracking, frame skipping, and GPU acceleration. These optimizations make real-time or near-real-time processing feasible.
-
-# Progress Update (23 July 2026)
-
-## Refactoring the Masking Pipeline
-
-### Problem
-
-QR code detection was implemented as a separate script (`qr_detector.py`) while OCR-based text masking was handled in `redacted.py`. This resulted in two independent masking pipelines.
-
-### Solution
-
-Integrated QR code detection into the main redaction pipeline and created a single function:
-
-```python
-redact_frame(frame)
-```
-
-Processing flow:
-
-```
-Frame
-  ↓
-OCR Detection
-  ↓
-Regex Validation
-  ↓
-Mask Sensitive Text
-  ↓
-QR Detection
-  ↓
-Mask QR Code
-  ↓
-Return Frame
-```
-
-### Dynamic QR Blur
-
-Previously, a fixed Gaussian blur kernel (`99×99`) was used for every QR code, leading to inconsistent masking.
-
-The kernel size is now calculated dynamically based on the QR code's bounding box while ensuring:
-- Minimum kernel size of `3×3`
-- Kernel size is always odd
-- Blur strength scales with QR size
-
-### Testing
-
-Verified the unified pipeline on:
-
-- QR code only
-- Sensitive text only
-- QR code + sensitive text
-- Neither QR nor sensitive text
-
-All four cases were processed successfully.
-
-### Key Lesson Learned
-
-A modular pipeline is easier to maintain and extend than multiple standalone scripts. Future improvements like preprocessing, frame skipping, and object tracking can now be added without changing the overall architecture.
-
-# Progress Report(24 July 2026)
-
-## Completed
-
-- Added an OCR preprocessing pipeline (`preprocessing.py`).
-- Upscaled images before OCR for better text recognition.
-- Applied CLAHE for local contrast enhancement.
-- Added image sharpening to improve OCR readability.
-- Fixed bounding box scaling after preprocessing by mapping OCR coordinates back to the original image.
-- Added OCR confidence threshold to ignore low-confidence detections.
-- Improved Gaussian blur using larger dynamic kernel sizes for stronger masking.
-- Refactored OCR text normalization into a separate utility (`ocr_utils.py`).
-- Wrapped temporary testing code inside `if __name__ == "__main__":`.
-
----
-
-## Problems Encountered
-
-### 1. Incorrect Mask Position
-
-**Problem:**
-After introducing image upscaling, the blur was applied at incorrect locations.
-
-**Cause:**
-EasyOCR returned bounding boxes for the upscaled image while masking was performed on the original frame.
-
-**Solution:**
-Scaled all OCR coordinates back using `OCR_SCALE` before applying the mask.
-
----
-
-### 2. Aadhaar VID Not Detected
-
-**Problem:**
-The VID was visible in the image but was not being detected.
-
-**Cause:**
-EasyOCR returned:
-
-```text
-VID : 9876 5432 1234 5678
-```
-
-while the regex expected only the numeric ID.
-
-**Solution:**
-Added an OCR text normalization step to remove prefixes such as `VID:` before regex matching.
-
----
-
-### 3. Weak Blur on Sensitive Text
-
-**Problem:**
-Sensitive numbers were still partially readable after masking.
-
-**Solution:**
-Increased the maximum Gaussian kernel size and blur strength to produce stronger, more privacy-preserving masking.
-
----
-
-## Observations
-
-- OCR accuracy improved for most Aadhaar numbers after preprocessing.
-- QR detection continued to work correctly after pipeline changes.
-- The remaining OCR limitations are primarily due to OCR segmentation rather than image quality.
-
----
-
-## Next Steps
-
-- Implement frame skipping.
-- Add bounding box persistence between frames.
-- Benchmark processing time before and after optimization.
-
-
-# Progress Update (26 July 2026)
-
-## Object Tracking Integration (CSRT)
-
-### Pipeline Refactoring
-
-- Refactored the video pipeline to separate **detection**, **tracking**, and **masking** into independent stages.
-- Created a dedicated tracking module to keep tracker management separate from OCR and masking logic.
-- Detection now acts as a source of bounding boxes, while masking simply consumes those bounding boxes regardless of whether they come from OCR or the tracker.
-
----
-
-## CSRT Object Tracking
-
-- Integrated **OpenCV CSRT trackers** for both sensitive text regions and QR codes.
-- Created one tracker for each detected object instead of tracking the entire frame.
-- Trackers are refreshed every OCR cycle using the latest detections.
-- During skipped frames, bounding boxes are updated using the trackers instead of rerunning OCR.
+### Solution 2 — CSRT Tracking
 
 Pipeline:
 
 ```
-OCR Detection
-      ↓
+OCR
+ ↓
 Create CSRT Trackers
-      ↓
-Update Trackers on Skipped Frames
-      ↓
+ ↓
+Update Bounding Boxes
+ ↓
 Apply Gaussian Blur
 ```
 
----
 
-## Performance Improvements
+Benefits:
 
-- Combined **frame skipping** with **CSRT tracking**.
-- OCR is now executed only at fixed intervals while trackers estimate object movement between OCR runs.
-- Significantly reduced expensive OCR inference calls while keeping masks aligned with moving ID cards.
-- Improved masking stability compared to using cached bounding boxes alone.
+- OCR runs much less frequently
+- Bounding boxes remain aligned
+- Much smoother masking
 
 ---
 
-## Code Quality Improvements
+### Solution 3 — OCR Preprocessing
 
-- Added a dedicated `tracker.py` module.
-- Modularised tracker creation and tracker updates.
-- Existing masking logic required no changes because trackers return detections in the same format as the OCR pipeline.
-- Improved overall project architecture by separating responsibilities:
-  - Detection
-  - Tracking
-  - Masking
+Added:
 
----
+- Image upscaling
+- CLAHE
+- Sharpening
+- Confidence threshold
+- OCR text normalization
 
-## Current Results
+Result:
 
-- Aadhaar number masking performs consistently.
-- QR code masking remains reliable.
-- CSRT tracking successfully follows moving sensitive regions between OCR refreshes.
-- Video processing speed has improved substantially while maintaining masking quality.
+- Better OCR accuracy
+- Better masking quality
 
 ---
 
-## Known Limitation
+# Current Pipeline
 
-- Aadhaar **VID** detection is still inconsistent in some videos.
-- Investigation shows this is primarily due to OCR recognition errors on low-quality or motion-blurred frames rather than the tracking system.
-- This limitation will be documented and can be addressed in future versions using improved OCR models or document-specific detectors.
+Image
+
+```
+Input Image
+↓
+OCR Preprocessing
+↓
+EasyOCR
+↓
+Regex Validation
+↓
+QR Detection
+↓
+Gaussian Blur
+↓
+Output Image
+```
+
+Video
+
+```
+Input Video
+↓
+OCR (Every 5 Frames)
+↓
+CSRT Tracker
+↓
+Gaussian Blur
+↓
+Output Video
+```
+
 
 ---
 
-## Next Steps
+# Progress Log
 
-- Build the FastAPI backend for image and video upload endpoints.
-- Integrate the masking pipeline into REST APIs.
-- Develop the Next.js frontend for file upload, preview, processing status, and download.
-- Dockerise the backend and prepare the project for deployment.
+## 23 July 2026
 
-# Progress Update (27 July 2026)
+### Unified Masking Pipeline
 
-## FastAPI Backend Integration
+- Combined OCR masking and QR masking.
+- Introduced `redact_frame()`.
+- Added dynamic Gaussian blur for QR codes.
+- Verified four test cases successfully.
 
-- Refactored the processing logic into reusable service functions.
-- Built FastAPI endpoints for image and video masking.
-- Added file upload, download, and deletion APIs.
-- Implemented Pydantic response models for consistent API responses.
-- Added file type validation and comprehensive error handling.
-- Prevented filename collisions by generating unique filenames using UUIDs.
-- Sanitized download/delete paths to improve API security.
-- Backend is now ready to be connected with the frontend.
+---
+
+## 24 July 2026
+
+### OCR Improvements
+
+- Added preprocessing pipeline.
+- Added CLAHE.
+- Added sharpening.
+- Fixed OCR coordinate scaling.
+- Added confidence threshold.
+- Increased Gaussian blur strength.
+- Created `ocr_utils.py`.
+- Normalized OCR text before regex matching.
+
+Known issue:
+
+- VID detection still inconsistent.
+
+---
+
+## 25 July 2026
+
+### Video Optimisation
+
+- Refactored detection and masking.
+- Added frame skipping.
+- Introduced detection caching.
+- Reduced processing time significantly.
+
+### CSRT Object Tracking
+
+- Added CSRT tracker.
+- Refactored into Detection → Tracking → Masking.
+- Tracker updates bounding boxes between OCR runs.
+- Improved masking stability.
+- Reduced OCR workload further.
+
+Current Result:
+
+- Aadhaar masking is reliable.
+- QR masking is reliable.
+- VID remains OCR-limited.
+
+---
+
+## 26 July 2026
+
+### FastAPI Backend
+
+Implemented:
+
+- Image upload API
+- Video upload API
+- Download endpoint
+- Delete endpoint
+- UUID-based filenames
+- Pydantic response models
+- File type validation
+- Error handling
+- Path sanitization
+
+Backend is ready for frontend integration.
+
+---
+
+# Future Improvements
+
+## Backend
+
+- Async background processing
+- Progress tracking
+- Processing queue
+- Docker deployment
+- Logging
+
+## Frontend
+
+- Next.js UI
+- Upload page
+- Progress bar
+- Download page
+- Before/After preview
+
+## Detection
+
+- Better OCR model
+- GPU inference
+- Resize before OCR
+- Multi-line OCR merging
+- YOLO document detector
