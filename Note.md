@@ -422,3 +422,16 @@ Apply Gaussian Blur
 - Integrate the masking pipeline into REST APIs.
 - Develop the Next.js frontend for file upload, preview, processing status, and download.
 - Dockerise the backend and prepare the project for deployment.
+
+# Progress Update (27 July 2026)
+
+## FastAPI Backend Integration
+
+- Refactored the processing logic into reusable service functions.
+- Built FastAPI endpoints for image and video masking.
+- Added file upload, download, and deletion APIs.
+- Implemented Pydantic response models for consistent API responses.
+- Added file type validation and comprehensive error handling.
+- Prevented filename collisions by generating unique filenames using UUIDs.
+- Sanitized download/delete paths to improve API security.
+- Backend is now ready to be connected with the frontend.

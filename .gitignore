@@ -49,13 +49,12 @@ Thumbs.db
 # ==========================
 # Generated Media
 # ==========================
-uploads/
-processed/
 temp/
 *.mp4
 *.avi
 *.mov
 *.mkv
+*.jpg
 
 # Uncomment if you want to keep the folders
 #!uploads/.gitkeep
