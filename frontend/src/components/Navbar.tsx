@@ -20,7 +20,7 @@ const Navbar = () => {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50">
+    <nav className="sticky top-0 z-50">
       <div className="max-w-7xl mx-auto m-4 rounded-4xl bg-blue-700 transition-all duration-300 text-white dark:bg-zinc-900/60 shadow-lg">
         <div className="flex justify-between p-5 h-16 gap-3 text-lg items-center">
           <Link
@@ -30,6 +30,7 @@ const Navbar = () => {
             <Image
               src={HomeLogo}
               alt="MaskVision Logo"
+              loading="eager"
               className="w-24 md:w-24 lg:w-28 h-auto transition-transform duration-200 hover:scale-105"
             />
           </Link>

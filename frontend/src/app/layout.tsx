@@ -7,6 +7,8 @@ import {
   JetBrains_Mono, Geist
 } from "next/font/google";
 import { cn } from "@/lib/utils";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -37,14 +39,19 @@ export default function RootLayout({
       suppressHydrationWarning
     >
 
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-screen flex flex-col">
+
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
         </ThemeProvider>
 
       </body>
