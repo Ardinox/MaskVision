@@ -1,16 +1,14 @@
 import Footer from '@/components/Footer'
-import HeroSection from '@/components/HeroSection'
 import Navbar from '@/components/Navbar'
 import React from 'react'
 
-const Page = () => {
+const page = () => {
   return (
     <div>
-      <Navbar/>
-      <HeroSection/>
-      <Footer/>
+        <Navbar/>
+        <Footer/>
     </div>
   )
 }
 
-export default Page
+export default page
