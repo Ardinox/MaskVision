@@ -7,7 +7,7 @@ import ComparisonSection from '@/components/ComparisionSection'
 
 const page = () => {
   return (
-    <div className="max-w-7xl mx-auto px-6 py-20">
+    <div className="max-w-7xl mx-auto px-6 pt-8 py-20">
       <div className='flex flex-col gap-16'>
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-relaxed">What is MaskVision?</h1>
