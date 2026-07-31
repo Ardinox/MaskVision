@@ -5,11 +5,17 @@ import { useState } from "react";
 import UploadCard from "@/components/UploadCard";
 import PreviewCard from "@/components/PreviewCard";
 import ProcessingCard from "@/components/ProcessingCard";
+import ResultCard from "@/components/ResultCard";
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-
+  const [result, setResult] = useState<{
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+  } | null>(null);
   const handleProcess = async () => {
     if (!file) return;
 
@@ -35,6 +41,18 @@ export default function Page() {
         />
       ) : processing ? (
         <ProcessingCard fileName={file.name} />
+      ) : result ? (
+        <ResultCard
+          fileUrl={result.fileUrl}
+          fileName={result.fileName}
+          fileType={result.fileType}
+          fileSize={result.fileSize}
+          onDownload={() => window.open(result.fileUrl)}
+          onReset={() => {
+            setResult(null);
+            setFile(null);
+          }}
+        />
       ) : (
         <PreviewCard
           file={file}
