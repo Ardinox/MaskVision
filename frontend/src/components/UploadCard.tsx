@@ -109,18 +109,6 @@ export default function UploadCard({
           />
         </label>
 
-        {selectedFile && (
-          <div className="mt-6 w-full rounded-xl border bg-zinc-50 p-4 text-left dark:bg-zinc-800">
-            <p className="font-medium">📄 {selectedFile.name}</p>
-            <p className="mt-1 text-sm text-zinc-500">
-              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-            </p>
-            <p className="mt-1 text-sm text-green-600 dark:text-green-400">
-              ✓ Ready to process
-            </p>
-          </div>
-        )}
-
         <p className="mt-6 text-sm text-zinc-500">
           Supported formats: {accept}
         </p>

@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { technologies } from '@/lib/techList'
 import WorkflowSection from '@/components/WorkflowSection'
-import ComparisonSection from '@/components/ComparisionSection'
 
 
 const page = () => {

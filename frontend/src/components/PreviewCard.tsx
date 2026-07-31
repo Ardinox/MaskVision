@@ -69,12 +69,12 @@ export default function PreviewCard({
             <div className="mt-8 flex justify-center gap-4">
                 <Button
                     onClick={onProcess}
-                    className="bg-green-500 hover:bg-green-600"
+                    className="px-6 py-6 text-md bg-green-500 transition-transform duration-200 hover:scale-105 hover:bg-green-600"
                 >
                     Start Masking
                 </Button>
 
-                <Button variant="outline" onClick={onRemove}>
+                <Button className='px-4 py-6 transition-transform duration-200 hover:scale-105' variant="outline" onClick={onRemove}>
                     Choose Another File
                 </Button>
             </div>
