@@ -21,8 +21,7 @@ export default function ProcessingCard({
         </h2>
 
         <p className="mt-3 text-zinc-600 dark:text-zinc-400 max-w-md">
-          Please wait while MaskVision detects and masks sensitive
-          information.
+          Please wait, Do not leave this page or Refresh while Processing.
         </p>
 
         <div className="mt-8 w-full rounded-xl border bg-zinc-50 dark:bg-zinc-800 p-4 text-left">
