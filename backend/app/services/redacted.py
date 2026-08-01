@@ -1,9 +1,9 @@
 import easyocr
 import numpy as np
 import cv2
-from backend.app.services.pattern import detect_id_type
-from backend.app.services.preprocessing import preprocess_for_ocr, OCR_SCALE
-from backend.app.services.ocr_utils import normalize_ocr_text
+from app.services.pattern import detect_id_type
+from app.services.preprocessing import preprocess_for_ocr, OCR_SCALE
+from app.services.ocr_utils import normalize_ocr_text
 from pyzbar.pyzbar import decode
 
 # Confidence Threshold

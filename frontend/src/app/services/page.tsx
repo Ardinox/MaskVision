@@ -1,33 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import UploadCard from "@/components/UploadCard";
 import PreviewCard from "@/components/PreviewCard";
 import ProcessingCard from "@/components/ProcessingCard";
 import ResultCard from "@/components/ResultCard";
+import { UploadMedia } from "@/api/upload";
+import { MaskResponse } from "@/types/api";
+import { deleteFile, downloadFile } from "@/api/downloadAndDelete";
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{
-    fileUrl: string;
-    fileName: string;
-    fileType: string;
-    fileSize: number;
-  } | null>(null);
+  const [result, setResult] = useState<MaskResponse | null>(null);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (!result) return;
+
+      navigator.sendBeacon(
+        `${process.env.NEXT_PUBLIC_API_URL}/delete/${result.filename}`
+      );
+    };
+
+    window.addEventListener("pagehide", handleUnload);;
+
+    return () => {
+      window.addEventListener("pagehide", handleUnload);
+    };
+  }, [result]);
+
   const handleProcess = async () => {
     if (!file) return;
 
     setProcessing(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // Temporary delay to test the UI
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    setProcessing(false);
+    try {
+      const response = await UploadMedia(file);
+      setResult(response);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -43,12 +59,19 @@ export default function Page() {
         <ProcessingCard fileName={file.name} />
       ) : result ? (
         <ResultCard
-          fileUrl={result.fileUrl}
-          fileName={result.fileName}
-          fileType={result.fileType}
-          fileSize={result.fileSize}
-          onDownload={() => window.open(result.fileUrl)}
-          onReset={() => {
+          fileName={result.filename}
+          fileType={file.type}
+          fileSize={file.size}
+          onDownload={async () => {
+            await downloadFile(result.download_url);
+          }}
+          onReset={async () => {
+            try {
+              await deleteFile(result.filename);
+            } catch (err) {
+              console.error(err);
+            }
+
             setResult(null);
             setFile(null);
           }}

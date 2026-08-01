@@ -1,11 +1,11 @@
 import cv2
-from backend.app.services.redacted import (
+from app.services.redacted import (
     redact_frame,
     detect_sensitive_text,
     detect_qr,
     apply_masks,
 )
-from backend.app.services.tracker import (
+from app.services.tracker import (
     create_trackers,
     update_trackers,
 )

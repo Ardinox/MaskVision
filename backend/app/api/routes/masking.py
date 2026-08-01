@@ -5,13 +5,13 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 
-from backend.app.model import ProcessResponse, DeleteResponse
-from backend.app.services.processing import process_image, process_video
+from app.model import ProcessResponse, DeleteResponse
+from app.services.processing import process_image, process_video
 
 router = APIRouter(prefix="/api/functions", tags=["Functions"])
 
-UPLOAD_DIR = Path("backend/app/uploads")
-OUTPUT_DIR = Path("backend/app/processed")
+UPLOAD_DIR = Path("app/uploads")
+OUTPUT_DIR = Path("app/processed")
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -50,7 +50,7 @@ async def mask_photos(file: UploadFile = File(...)):
     return ProcessResponse(
         status="success",
         filename=output_path.name,
-        download_url=f"/api/functions/download/{output_path.name}",
+        download_url=output_path.name,
         message="Photo masked successfully.",
     )
 
@@ -74,7 +74,7 @@ async def mask_videos(file: UploadFile = File(...)):
     return ProcessResponse(
         status="success",
         filename=output_path.name,
-        download_url=f"/api/functions/download/{output_path.name}",
+        download_url=output_path.name,
         message="Video masked successfully.",
     )
 
