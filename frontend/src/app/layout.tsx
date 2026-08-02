@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 
+import { Toaster } from "sonner";
+
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 const inter = Inter({
@@ -52,6 +54,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
 
       </body>

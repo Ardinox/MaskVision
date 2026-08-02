@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 
+import { toast } from "sonner"
+
 import UploadCard from "@/components/UploadCard";
 import PreviewCard from "@/components/PreviewCard";
 import ProcessingCard from "@/components/ProcessingCard";
@@ -9,6 +11,7 @@ import ResultCard from "@/components/ResultCard";
 import { UploadMedia } from "@/api/upload";
 import { MaskResponse } from "@/types/api";
 import { deleteFile, downloadFile } from "@/api/downloadAndDelete";
+import { handleApiError } from "@/lib/handleApiError";
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
@@ -27,9 +30,11 @@ export default function Page() {
     window.addEventListener("pagehide", handleUnload);;
 
     return () => {
-      window.addEventListener("pagehide", handleUnload);
+      window.removeEventListener("pagehide", handleUnload);
     };
   }, [result]);
+
+  
 
   const handleProcess = async () => {
     if (!file) return;
@@ -40,8 +45,9 @@ export default function Page() {
       const response = await UploadMedia(file);
       setResult(response);
     } catch (err) {
-      console.error(err);
-    } finally {
+      handleApiError(err)
+    }
+    finally {
       setProcessing(false);
     }
   };
@@ -63,17 +69,24 @@ export default function Page() {
           fileType={file.type}
           fileSize={file.size}
           onDownload={async () => {
-            await downloadFile(result.download_url);
+            try {
+              await downloadFile(result.download_url);
+              toast.success("Download started.")
+            } catch (err) {
+              handleApiError(err)
+            }
+
           }}
           onReset={async () => {
             try {
               await deleteFile(result.filename);
+              toast.success("File removed from server.");
             } catch (err) {
-              console.error(err);
+              handleApiError(err)
+            } finally {
+              setResult(null);
+              setFile(null);
             }
-
-            setResult(null);
-            setFile(null);
           }}
         />
       ) : (

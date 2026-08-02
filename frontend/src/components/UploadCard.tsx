@@ -17,7 +17,7 @@ export default function UploadCard({
   onFileSelect,
 }: UploadCardProps) {
   const [dragging, setDragging] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [, setSelectedFile] = useState<File | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
