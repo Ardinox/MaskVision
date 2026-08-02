@@ -36,16 +36,16 @@ export default function ResultCard({
                     Processing Complete
                 </h2>
 
-                <p className="mt-2 text-center text-zinc-600 dark:text-zinc-400">
-                    Your file has been successfully processed and is ready to download.
-                </p>
+                <div className="mt-5 w-full max-w-md rounded-lg bg-green-50 p-3 text-center text-sm text-green-700 dark:bg-green-950/30 dark:text-green-300">
+                    Sensitive information has been successfully detected and masked. Your processed file is ready to download.
+                </div>
 
                 <div className="mt-8 w-full rounded-xl border bg-zinc-50 dark:bg-zinc-800 p-5">
 
                     <div className="space-y-2 text-sm">
 
                         <p>
-                            <span className="font-semibold">File Name:</span>{" "}
+                            <span className="font-semibold">Filename:</span>{" "}
                             {fileName}
                         </p>
 
@@ -67,7 +67,7 @@ export default function ResultCard({
 
                     <Button
                         onClick={onDownload}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="h-12 px-6 bg-blue-600 transition-transform duration-200 hover:scale-105 hover:bg-blue-700"
                     >
                         <Download className="mr-2 h-4 w-4" />
                         Download
@@ -76,6 +76,7 @@ export default function ResultCard({
                     <Button
                         variant="outline"
                         onClick={onReset}
+                        className="h-12 px-6 transition-transform duration-200 hover:scale-105"
                     >
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Upload Another

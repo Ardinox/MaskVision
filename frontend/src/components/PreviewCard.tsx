@@ -29,7 +29,7 @@ export default function PreviewCard({
 
     return (
         <div className="mx-auto mt-2 w-full max-w-2xl rounded-2xl border bg-white p-8 shadow-lg dark:bg-zinc-900">
-            <h2 className="text-center text-2xl font-bold">Preview</h2>
+            <h2 className="text-center text-2xl font-bold">Review Your File</h2>
 
             <div className="mt-6 flex justify-center">
                 {isImage && (
@@ -62,19 +62,19 @@ export default function PreviewCard({
 
                 <p>
                     <span className="font-semibold">Size:</span>{" "}
-                    <span className="font-semibold">Size:</span> {formatFileSize(file.size)}
+                    {formatFileSize(file.size)}
                 </p>
             </div>
 
             <div className="mt-8 flex justify-center gap-4">
                 <Button
                     onClick={onProcess}
-                    className="px-6 py-6 text-md bg-green-500 transition-transform duration-200 hover:scale-105 hover:bg-green-600"
+                    className="px-6 h-12 text-base transition-transform duration-200 hover:scale-105 bg-green-500 hover:bg-green-600"
                 >
                     Start Masking
                 </Button>
 
-                <Button className='px-4 py-6 transition-transform duration-200 hover:scale-105' variant="outline" onClick={onRemove}>
+                <Button className='px-4 h-12 text-base transition-transform duration-200 hover:scale-105' variant="outline" onClick={onRemove}>
                     Choose Another File
                 </Button>
             </div>
