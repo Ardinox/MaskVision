@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
+import { toast } from "sonner";
 
 type UploadCardProps = {
   title: string;
@@ -17,24 +18,32 @@ export default function UploadCard({
   onFileSelect,
 }: UploadCardProps) {
   const [dragging, setDragging] = useState(false);
-  const [, setSelectedFile] = useState<File | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
   const handleFile = (file: File) => {
-    // Validate dropped/selected file type
     const valid = accept.split(",").some((type) => {
       const prefix = type.trim().replace("/*", "/");
       return file.type.startsWith(prefix);
     });
 
     if (!valid) {
-      alert("Unsupported file type.");
+      toast.error("Please upload an image or video.");
       return;
     }
 
-    setSelectedFile(file);
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size must be under 100 MB.");
+      return;
+    }
+
     onFileSelect(file);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
@@ -49,7 +58,9 @@ export default function UploadCard({
   const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
 
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+    const nextTarget = e.relatedTarget as Node | null;
+
+    if (!nextTarget || !e.currentTarget.contains(nextTarget)) {
       setDragging(false);
     }
   };
@@ -81,11 +92,10 @@ export default function UploadCard({
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`mt-8 flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-all duration-300 ${
-            dragging
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-              : "border-zinc-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          }`}
+          className={`mt-8 flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-all duration-300 ${dragging
+            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+            : "border-zinc-300 hover:border-blue-500 hover:bg-blue-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            }`}
         >
           <Upload className="mb-3 h-8 w-8 text-blue-600 dark:text-blue-400" />
 
@@ -110,7 +120,7 @@ export default function UploadCard({
         </label>
 
         <p className="mt-6 text-sm text-zinc-500">
-          Supported formats: {accept}
+          Supported formats: Images & Videos (max 100 MB)
         </p>
       </div>
     </div>
