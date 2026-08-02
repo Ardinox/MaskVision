@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import { toast } from "sonner"
 
@@ -10,7 +10,7 @@ import ProcessingCard from "@/components/ProcessingCard";
 import ResultCard from "@/components/ResultCard";
 import { UploadMedia } from "@/api/upload";
 import { MaskResponse } from "@/types/api";
-import { deleteFile, downloadFile } from "@/api/downloadAndDelete";
+import { cleanupFile, deleteFile, downloadFile } from "@/api/downloadAndDelete";
 import { handleApiError } from "@/lib/handleApiError";
 
 export default function Page() {
@@ -18,23 +18,17 @@ export default function Page() {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<MaskResponse | null>(null);
 
+  const deletedRef = useRef(false);
+
   useEffect(() => {
-    const handleUnload = () => {
-      if (!result) return;
-
-      navigator.sendBeacon(
-        `${process.env.NEXT_PUBLIC_API_URL}/delete/${result.filename}`
-      );
-    };
-
-    window.addEventListener("pagehide", handleUnload);;
+    deletedRef.current = false;
 
     return () => {
-      window.removeEventListener("pagehide", handleUnload);
+      if (!result || deletedRef.current) return;
+
+      cleanupFile(result.filename);
     };
   }, [result]);
-
-  
 
   const handleProcess = async () => {
     if (!file) return;
@@ -80,6 +74,7 @@ export default function Page() {
           onReset={async () => {
             try {
               await deleteFile(result.filename);
+              deletedRef.current = true;
               toast.success("File removed from server.");
             } catch (err) {
               handleApiError(err)
