@@ -1,9 +1,25 @@
 import cv2
 
 
+def create_csrt_tracker():
+    """
+    Creates Valid CSRT tracker based on the cv2 version.
+
+    Returns: returns a CSRT object tracker instance in OpenCV.
+    """
+    if hasattr(cv2, "TrackerCSRT_create"):
+        return cv2.TrackerCSRT_create()
+
+    if hasattr(cv2, "legacy") and hasattr(cv2.legacy, "TrackerCSRT_create"):
+        return cv2.legacy.TrackerCSRT_create()
+
+    raise RuntimeError("CSRT tracker is not available.")
+
+
 def create_trackers(frame, detections):
     """
     Create one CSRT tracker for each detection.
+    - calls create_csrt_tracker() for valid tracker.
 
     Args:
         frame: Current video frame.
@@ -21,7 +37,7 @@ def create_trackers(frame, detections):
         width = x_max - x_min
         height = y_max - y_min
 
-        tracker = cv2.legacy.TrackerCSRT_create()
+        tracker = create_csrt_tracker()
         tracker.init(frame, (x_min, y_min, width, height))
 
         trackers.append(

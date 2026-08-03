@@ -9,11 +9,20 @@ from pyzbar.pyzbar import decode
 # Confidence Threshold
 OCR_CONFIDENCE_THRESHOLD = 0.45
 
+# Initializing easyocr for text detection for language English
 reader = easyocr.Reader(["en"])
 
 
-# Detect QR codes in a frame and return their bounding boxes.
 def detect_qr(frame):
+    """
+    Detect QR codes in a frame and return their bounding boxes.
+
+    Args:
+        frame: Current video frame or the image.
+
+    Returns:
+        The bounding boxes where blur to be applied in x_min, y_min, x_max, y_max format.
+    """
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     qr_codes = decode(gray)
 
@@ -33,8 +42,17 @@ def detect_qr(frame):
         detections.append({"bbox": (x_min, y_min, x_max, y_max), "type": "QR"})
     return detections
 
-# Detects sensitive text from given the frames and return their bounding boxes
+
 def detect_sensitive_text(frame):
+    """
+    Detects sensitive text from given the frames and return their bounding boxes
+
+    Args:
+        frame: Current video frame or the image.
+
+    Returns:
+        The bounding boxes where blur to be applied in x_min, y_min, x_max, y_max format.
+    """
     processed_frame = preprocess_for_ocr(frame)
     result = reader.readtext(processed_frame)
 
@@ -112,8 +130,19 @@ def apply_masks(frame, detections):
 
         frame[y_min:y_max, x_min:x_max] = blurred_roi
 
-# If called for a 'frame' it will apply masking and then return that frame back
+
 def redact_frame(frame):
+    """
+    For a given frame calls apply_masks() and then return that frame back.
+    - calls detect_sensitive_text() & detect_qr() for detections
+    - Then apply_mask for masking.
+
+    Args:
+        - Current video frame or the image.
+
+    Returns:
+        - The blurred frame
+    """
     text_detections = detect_sensitive_text(frame)
     qr_detections = detect_qr(frame)
 
@@ -121,4 +150,3 @@ def redact_frame(frame):
 
     apply_masks(frame, detections)
     return frame
-

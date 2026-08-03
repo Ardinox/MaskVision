@@ -3,6 +3,7 @@ import numpy as np
 
 OCR_SCALE = 2.0
 
+
 def preprocess_for_ocr(frame):
     """
     Preprocess an image before sending it to EasyOCR.
@@ -19,21 +20,14 @@ def preprocess_for_ocr(frame):
     """
     # Step 1: Upscale image
     processed = cv2.resize(
-        frame,
-        None,
-        fx=OCR_SCALE,
-        fy=OCR_SCALE,
-        interpolation=cv2.INTER_CUBIC
+        frame, None, fx=OCR_SCALE, fy=OCR_SCALE, interpolation=cv2.INTER_CUBIC
     )
 
     # Step 2: Convert to Grayscale
     gray = cv2.cvtColor(processed, cv2.COLOR_BGR2GRAY)
 
     # Step 3: CLAHE (Contrast Enhancement)
-    clahe = cv2.createCLAHE(
-        clipLimit=2.0,
-        tileGridSize=(8, 8)
-    )
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
     gray = clahe.apply(gray)
 
@@ -47,16 +41,8 @@ def preprocess_for_ocr(frame):
     # )
 
     # Step 5: Sharpen
-    sharpening_kernel = np.array([
-        [0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0]
-    ])
+    sharpening_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
 
-    gray = cv2.filter2D(
-        gray,
-        -1,
-        sharpening_kernel
-    )
+    gray = cv2.filter2D(gray, -1, sharpening_kernel)
 
     return gray

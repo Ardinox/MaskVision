@@ -1,7 +1,13 @@
-# Normalizes texts like VID: 0000 1111 2222 3333 -->0000111122223333
 import re
 
 def normalize_ocr_text(text: str):
+    """
+    Normalizes text fields for accurate regex detection.
+
+    - Example : 
+
+    VID:0000 1111 2222 3333 -->0000111122223333
+    """
     clean_text = text.upper().strip()
 
     # Remove common prefixes

@@ -2,6 +2,12 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { technologies } from '@/lib/techList'
 import WorkflowSection from '@/components/WorkflowSection'
+import ComparisonSection from '@/components/ComparisionSection'
+
+import MaskedImage from "../../../public/MaskedImage.png"
+import OriginalImage from "../../../public/OriginalImage.png"
+import MaskedGif from "../../../public/MaskedGif.gif"
+import OriginalGif from "../../../public/OriginalGif.gif"
 
 
 const page = () => {
@@ -17,19 +23,19 @@ const page = () => {
 
         {/*Demo Section For Images and Videos*/}
         
-        {/* <ComparisonSection
+        <ComparisonSection
           title="Image Demo"
           description="Aadhaar number, PAN number and QR code were automatically detected and blurred."
           beforeSrc={OriginalImage}
           afterSrc={MaskedImage}
         />
 
-        <ComparisonCard
+        <ComparisonSection
           title="Video Demo"
           description="Frame skipping and OpenCV tracking speed up processing while maintaining masking quality."
           beforeSrc={OriginalGif}
           afterSrc={MaskedGif}
-        /> */}
+        />
 
         <div>
           <h2 className="text-2xl md:text-3xl font-bold">Technologies</h2>

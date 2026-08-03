@@ -17,6 +17,11 @@ const ComparisonSection = ({
   beforeLabel = "Original",
   afterLabel = "Masked",
 }: ComparisonCardProps) => {
+  const isGif =
+  typeof beforeSrc === "string"
+    ? beforeSrc.endsWith(".gif")
+    : beforeSrc.src.endsWith(".gif");
+
   return (
     <section className="mt-16">
       <h2 className="text-2xl md:text-3xl font-bold">{title}</h2>
@@ -33,12 +38,20 @@ const ComparisonSection = ({
             {beforeLabel}
           </span>
 
-          <div className="overflow-hidden rounded-2xl border shadow-lg">
-            <Image
-              src={beforeSrc}
-              alt={beforeLabel}
-              className="w-full max-w-md h-auto transition-transform duration-300 hover:scale-105"
-            />
+          <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-2xl border shadow-lg">
+            {isGif ? (
+              <img
+                src={typeof beforeSrc === "string" ? beforeSrc : beforeSrc.src}
+                alt={beforeLabel}
+                className="w-full max-w-md rounded-2xl border shadow-lg transition-transform duration-300 hover:scale-105"
+              />
+            ) : (
+              <Image
+                src={beforeSrc}
+                alt={beforeLabel}
+                className="w-full max-w-md transition-transform duration-300 hover:scale-105"
+              />
+            )}
           </div>
         </div>
 
@@ -56,12 +69,20 @@ const ComparisonSection = ({
             {afterLabel}
           </span>
 
-          <div className="overflow-hidden rounded-2xl border shadow-lg">
-            <Image
-              src={afterSrc}
-              alt={afterLabel}
-              className="w-full max-w-md h-auto transition-transform duration-300 hover:scale-105"
-            />
+          <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-2xl border shadow-lg">
+            {isGif ? (
+              <img
+                src={typeof afterSrc === "string" ? afterSrc : afterSrc.src}
+                alt={afterLabel}
+                className="w-full max-w-md rounded-2xl border shadow-lg transition-transform duration-300 hover:scale-105"
+              />
+            ) : (
+              <Image
+                src={afterSrc}
+                alt={afterLabel}
+                className="w-full max-w-md transition-transform duration-300 hover:scale-105"
+              />
+            )}
           </div>
         </div>
 

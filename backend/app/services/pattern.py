@@ -22,8 +22,19 @@ ID_PATTERNS = {
     },
 }
 
-# Detect Id type and mask type for futher processing
 def detect_id_type(text: str):
+    """
+    Detect Id type and mask type for futher processing.
+    - uses Regex for detection.
+
+    ### Arg:
+        Text: Id numbers
+
+    ### Arg:
+        ID type: Aadhar, Pan...etc.
+        Mask type: all/first 8 digit to be blurred
+    
+    """
     clean_text = text.strip()
     for id_type, config in ID_PATTERNS.items():
         if re.match(config["pattern"], clean_text):

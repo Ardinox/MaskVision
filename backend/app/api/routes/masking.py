@@ -13,11 +13,21 @@ router = APIRouter(prefix="/api/functions", tags=["Functions"])
 UPLOAD_DIR = Path("app/uploads")
 OUTPUT_DIR = Path("app/processed")
 
+# Creates the necessary directories if not available
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def save_file(file: UploadFile)->Path:
+def save_file(file: UploadFile) -> Path:
+    """
+    Saves the file in the server for processing.
+
+    Args:
+        File: Image / Video sent by frontend.
+
+    Returns:
+        input_path: where the file is saved.
+    """
     unique_filename = f"{uuid.uuid4().hex}_{Path(file.filename).name}"
     input_path = UPLOAD_DIR / unique_filename
 
@@ -32,11 +42,15 @@ def save_file(file: UploadFile)->Path:
 
 @router.post("/mask/photo", response_model=ProcessResponse)
 async def mask_photos(file: UploadFile = File(...)):
+    """
+    API : for image masking
+
+    Args:
+        File: Image sent by frontend.
+
+    """
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid image file."
-        )
+        raise HTTPException(status_code=400, detail="Invalid image file.")
 
     input_path = save_file(file)
 
@@ -57,20 +71,30 @@ async def mask_photos(file: UploadFile = File(...)):
 
 @router.post("/mask/video", response_model=ProcessResponse)
 async def mask_videos(file: UploadFile = File(...)):
+    """
+    API : for Video masking
+
+    Args:
+        File: Videos sent by frontend.
+
+    """
     if not file.content_type or not file.content_type.startswith("video/"):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid video file."
-        )
+        raise HTTPException(status_code=400, detail="Invalid video file.")
 
     input_path = save_file(file)
-
     output_path = OUTPUT_DIR / f"masked_{input_path.name}"
 
     try:
-        process_video(input_path=str(input_path), output_path=str(output_path))
+        process_video(
+            input_path=str(input_path),
+            output_path=str(output_path),
+        )
     except Exception as exe:
-        raise HTTPException(status_code=500, detail=f"Processing failed: {exe}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(exe),
+        )
+
     return ProcessResponse(
         status="success",
         filename=output_path.name,
@@ -81,6 +105,13 @@ async def mask_videos(file: UploadFile = File(...)):
 
 @router.get("/download/{filename}")
 async def download_file(filename: str):
+    """
+    API : For processed media downloading.
+
+    Args
+        filename: sent by frontend that the process photo/video sent them them earlier.
+
+    """
     filename = Path(filename).name
 
     file_path = OUTPUT_DIR / filename
@@ -93,6 +124,13 @@ async def download_file(filename: str):
 
 @router.delete("/delete/{filename}", response_model=DeleteResponse)
 async def delete_media(filename: str):
+    """
+    API : For processed media deletion.
+
+    Args
+        filename: sent by frontend that the process photo/video api sent them them earlier.
+
+    """
     filename = Path(filename).name
     original_filename = filename.replace("masked_", "", 1)
 
@@ -105,7 +143,4 @@ async def delete_media(filename: str):
     upload_path.unlink(missing_ok=True)
     processed_path.unlink(missing_ok=True)
 
-    return DeleteResponse(
-        status="success",
-        message="File Deleted Successfully"
-    )
+    return DeleteResponse(status="success", message="File Deleted Successfully")

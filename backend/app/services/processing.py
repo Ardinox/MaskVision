@@ -14,8 +14,15 @@ from app.services.tracker import (
 OCR_INTERVAL = 15
 
 
-# Process a single image
 def process_image(input_path: str, output_path: str):
+    """
+    - Send Image for Processing and masking.
+    - Saves the processed Image to the ouput_path
+
+    Args:
+        - Input path where the file is located
+        - Output Path, where the masked file will be kept
+    """
     image = cv2.imread(input_path)
 
     if image is None:
@@ -25,24 +32,33 @@ def process_image(input_path: str, output_path: str):
 
     cv2.imwrite(output_path, processed)
 
-    print(f"Saved output to {output_path}")
 
-
-# Process a video frame by frame
 def process_video(input_path: str, output_path: str):
+    """
+    - Builds masked Video frame by frame.
+    - Send Video frames for Processing and masking.
+    - decides which frames are to be processed.
+    - calls tracker for clean object tracking.
+    - Saves the processed video to the ouput_path.
+
+    Args:
+        - Input path where the file is located.
+        - Output Path, where the masked file will be kept.
+    """
     cap = cv2.VideoCapture(input_path)
 
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    if not cap.isOpened():
+        raise RuntimeError(f"Could not open video: {input_path}")
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(
-        output_path,
-        fourcc,
-        fps,
-        (width, height),
-    )
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    if not out.isOpened():
+        raise RuntimeError("Could not create VideoWriter")
 
     frame_count = 0
 
@@ -87,5 +103,3 @@ def process_video(input_path: str, output_path: str):
 
     cap.release()
     out.release()
-
-    print("Video Processing Complete! Saved to masked_output")
