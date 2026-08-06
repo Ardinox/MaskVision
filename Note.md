@@ -1,87 +1,41 @@
 # PII Masking Project – OCR Detection Issues & Optimization Notes
 
-# Known Limitations
+## Performance Optimisations
 
-## Aadhaar VID Detection
-
-### Issue
-
-VID detection is still inconsistent in videos.
-
-### Root Cause
-
-This is primarily an OCR limitation rather than a regex issue.
-
-EasyOCR sometimes:
-
-- misses the VID completely
-- segments the text incorrectly
-- produces low-confidence predictions on motion-blurred frames
-
-Example:
-
-Instead of:
-
-```
-9185 7890 6417 0314
-```
-
-EasyOCR returned:
-
-```
-9185 7890
-6417 0314
-```
-
-Since my regex expected all 16 digits in a single string, it failed to match the VID.
-
-
-### Possible Future Improvements
-
-- PaddleOCR
-- Fine-tuned OCR
-- YOLO-based document detection
-- Better preprocessing
-- OCR ensemble
-
----
-
-# Performance Optimisations
-
-## Initial Problem
+### Initial Problem
 
 OCR was executed on every frame.
 
 Result:
 
-```
+```bash
 30 FPS video
  ↓
 30 OCR calls for every second 
  ↓
-Very Slow Processing
+High Processing Time
 ```
 
 ---
 
-### Solution 1 — Frame Skipping
+**Solution 1** — Frame Skipping
 
-Run OCR every 5 frames.
+Run OCR every 15 frames.
 
-Skipped frames reuse previous detections.
+Skipped frames reuse the most recent OCR detections while CSRT trackers estimate the new object positions, avoiding expensive OCR execution on every frame.
 
 Benefit:
 
-- Huge speed improvement
-- Minimal quality loss
+- Significantly reduced processing time while maintaining acceptable masking accuracy.
+- Minimal quality loss during processing.
 
----
+**Solution 2** — CSRT Tracking
 
-### Solution 2 — CSRT Tracking
+CSRT was chosen over lighter trackers because it provides better robustness against scale changes and partial occlusions, resulting in more stable masking between OCR passes.
 
 Pipeline:
 
-```
+```bash
 OCR
  ↓
 Create CSRT Trackers
@@ -91,16 +45,15 @@ Update Bounding Boxes
 Apply Gaussian Blur
 ```
 
-
 Benefits:
 
 - OCR runs much less frequently
 - Bounding boxes remain aligned
 - Much smoother masking
 
----
+**Solution 3** — OCR Preprocessing
 
-### Solution 3 — OCR Preprocessing
+The preprocessing pipeline improves text visibility before OCR, increasing detection reliability on low-quality images.
 
 Added:
 
@@ -110,55 +63,18 @@ Added:
 - Confidence threshold
 - OCR text normalization
 
-Result:
+Results:
 
-- Better OCR accuracy
-- Better masking quality
-
----
-
-# Current Pipeline
-
-Image
-
-```
-Input Image
-↓
-OCR Preprocessing
-↓
-EasyOCR
-↓
-Regex Validation
-↓
-QR Detection
-↓
-Gaussian Blur
-↓
-Output Image
-```
-
-Video
-
-```
-Input Video
-↓
-OCR (Every 5 Frames)
-↓
-CSRT Tracker
-↓
-Gaussian Blur
-↓
-Output Video
-```
-
+- Improved OCR detection reliability, especially on lower-quality inputs.
+- Increased regex matching accuracy after text normalization.
 
 ---
 
-# Progress Log
+## Progress Log
 
-## 23 July 2026
+### 23 July 2026
 
-### Unified Masking Pipeline
+**Unified Masking Pipeline**:
 
 - Combined OCR masking and QR masking.
 - Introduced `redact_frame()`.
@@ -169,7 +85,7 @@ Output Video
 
 ## 24 July 2026
 
-### OCR Improvements
+**OCR Improvements**:
 
 - Added preprocessing pipeline.
 - Added CLAHE.
@@ -186,16 +102,16 @@ Known issue:
 
 ---
 
-## 25 July 2026
+### 25 July 2026
 
-### Video Optimisation
+**Video Optimisation**:
 
 - Refactored detection and masking.
 - Added frame skipping.
 - Introduced detection caching.
 - Reduced processing time significantly.
 
-### CSRT Object Tracking
+**CSRT Object Tracking**:
 
 - Added CSRT tracker.
 - Refactored into Detection → Tracking → Masking.
@@ -211,9 +127,7 @@ Current Result:
 
 ---
 
-## 26 July 2026
-
-### FastAPI Backend
+### 26 July 2026 (FastAPI Backend)
 
 Implemented:
 
@@ -231,28 +145,37 @@ Backend is ready for frontend integration.
 
 ---
 
-# Future Improvements
+### 27–31 July 2026 (Frontend Development)
 
-## Backend
+- Built the Landing and About pages
+- Implemented Navbar, Footer, and theme toggle
+- Implemented Upload, Preview, Processing, and Result components
+- Added drag-and-drop file upload
+- Added responsive UI with dark mode support
+- Added toast-based error handling
+- Created the project logo and graphics using Canva
 
-- Async background processing
-- Progress tracking
-- Processing queue
-- Docker deployment
-- Logging
+---
 
-## Frontend
+### 1 August 2026 (API Integration and Dockerization)
 
-- Next.js UI
-- Upload page
-- Progress bar
-- Download page
-- Before/After preview
+Implemented:
 
-## Detection
+- Integrated backend using Axios and resolved CORS issues
+- Dockerized both frontend and backend
+- Implemented a multi-stage Docker build for the Next.js frontend
+- Reduced backend image size by switching to OpenCV headless packages
+- Added Docker Compose configuration
 
-- Better OCR model
-- GPU inference
-- Resize before OCR
-- Multi-line OCR merging
-- YOLO document detector
+---
+
+### 2 August 2026 (Project Polish)
+
+Implemented:
+
+- Centralized API error handling
+- Added toast notifications for upload, download, and server errors
+- Added client-side file validation
+- Improved processing and result UI
+- Updated project documentation
+- Prepared project for GitHub deployment
